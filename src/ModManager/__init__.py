@@ -5,6 +5,8 @@ Date: 2025-08-10
 
 from typing import Final, List
 
+from core.engines import unreal
+
 from utils import dispatcher
 from utils import files
 from utils import logging
@@ -20,4 +22,5 @@ __all__: Final[List[str]] = [
     "nexus_files",
     "nexus_http",
     "sqlite",
+    "unreal",
 ]

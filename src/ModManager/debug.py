@@ -5,6 +5,8 @@ Date: 2025-08-10
 
 import os
 
+from core.core import API_JSON, load_api_json
+
 from utils.logging import (
     critical,
     debug,
@@ -112,6 +114,13 @@ def main() -> None:
         message=validate_api_key(
             api_key="",
         ),
+        name=__name__,
+    )
+
+    load_api_json()
+
+    debug(
+        message=API_JSON,
         name=__name__,
     )
 
