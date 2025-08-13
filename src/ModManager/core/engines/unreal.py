@@ -39,10 +39,8 @@ def create_mods_folder(path: Union[str, Path]) -> None:
 def is_unreal_game(path: Union[str, Path]) -> bool:
     """
     Checks if the given path is a valid Unreal game directory.
-
     :param path: The path to check.
     :type path: Union[str, Path]
-
     :return: True if the path is a valid Unreal game directory, False otherwise.
     :rtype: bool
     """
@@ -66,64 +64,27 @@ def is_unreal_game(path: Union[str, Path]) -> bool:
         # Return False
         return False
 
-    # List the directory contents
-    # Top-level directories present?
-    contents: List[Dict[str, Any]] = list_directory_contents(path=path)
-    top_dirs: Set[str] = {item["name"] for item in contents if item["is_dir"]}
+    # Check for a .uproject file
+    for item in list_directory_contents(path=path):
+        if item["name"].endswith(".uproject"):
+            return True
 
-    required_top_dirs: Set[str] = {
-        "Engine",
-        "Content",
-        "Binaries",
-    }
+    # Check for binaries
+    binaries_path_64 = path.joinpath("Binaries", "Win64")
+    binaries_path_32 = path.joinpath("Binaries", "Win32")
 
-    if not required_top_dirs.issubset(top_dirs):
+    if directory_exists(path=binaries_path_64):
+        binaries_path = binaries_path_64
+        suffix = "-Win64-Shipping.exe"
+    elif directory_exists(path=binaries_path_32):
+        binaries_path = binaries_path_32
+        suffix = "-Win32-Shipping.exe"
+    else:
         return False
 
-    # Check inside Engine
-    engine_path: Path = Path(
-        path,
-        "Engine",
-    )
+    # Check for a Shipping.exe file
+    for item in list_directory_contents(path=binaries_path):
+        if item["name"].endswith(suffix):
+            return True
 
-    engine_contents: Set[str] = {
-        item["name"] for item in list_directory_contents(engine_path) if item["is_dir"]
-    }
-
-    if not {
-        "Binaries",
-        "Config",
-        "Content",
-        "Plugins",
-    }.issubset(engine_contents):
-        return False
-
-    # Check Content/Paks
-    if not directory_exists(
-        path=Path(
-            engine_path.parent,
-            "Content",
-            "Paks",
-        )
-    ):
-        return False
-
-    # Check for platform folder in Binaries (e.g., Win64/Win32)
-    binaries_contents: Set[str] = {
-        item["name"]
-        for item in list_directory_contents(
-            path=Path(
-                engine_path.parent,
-                "Binaries",
-            )
-        )
-        if item["is_dir"]
-    }
-
-    if not {
-        "Win64",
-        "Win32",
-    }.issubset(binaries_contents):
-        return False
-
-    return True
+    return False
