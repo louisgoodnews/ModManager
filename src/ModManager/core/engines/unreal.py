@@ -57,7 +57,7 @@ def is_unreal_game(path: Union[str, Path]) -> bool:
     if not directory_exists(path=path):
         # Log a warning
         warn(
-            message=f"Directory '{path}' does not exist",
+            message=f"Directory '{path}' does not exist. Aborting.",
             name="unreal.is_unreal_game",
         )
 
@@ -66,25 +66,59 @@ def is_unreal_game(path: Union[str, Path]) -> bool:
 
     # Check for a .uproject file
     for item in list_directory_contents(path=path):
-        if item["name"].endswith(".uproject"):
-            return True
+        # Check if the item is a .uproject file
+        if not item["name"].endswith(".uproject"):
+            # Skip the current iteration
+            continue
 
-    # Check for binaries
-    binaries_path_64 = path.joinpath("Binaries", "Win64")
-    binaries_path_32 = path.joinpath("Binaries", "Win32")
+        # Return True
+        return True
 
+    # Check for win64 binaries
+    binaries_path_64: Path = path.joinpath(
+        "Binaries",
+        "Win64",
+    )
+
+    # Check for win32 binaries
+    binaries_path_32: Path = path.joinpath(
+        "Binaries",
+        "Win32",
+    )
+
+    # Check if the win64 binaries exist
     if directory_exists(path=binaries_path_64):
-        binaries_path = binaries_path_64
-        suffix = "-Win64-Shipping.exe"
+        # Set the binaries path
+        binaries_path: Path = binaries_path_64
+
+        # Set the suffix
+        suffix: str = "-Win64-Shipping.exe"
+    # Check if the win32 binaries exist
     elif directory_exists(path=binaries_path_32):
-        binaries_path = binaries_path_32
-        suffix = "-Win32-Shipping.exe"
+        # Set the binaries path
+        binaries_path: Path = binaries_path_32
+
+        # Set the suffix
+        suffix: str = "-Win32-Shipping.exe"
     else:
+        # Return False if neither win64 nor win32 binaries exist
+        warn(
+            message=f"Directory '{path}' does not contain win64 or win32 binaries. Aborting.",
+            name="unreal.is_unreal_game",
+        )
+
+        # Return False
         return False
 
     # Check for a Shipping.exe file
     for item in list_directory_contents(path=binaries_path):
-        if item["name"].endswith(suffix):
-            return True
+        # Check if the item is a Shipping.exe file
+        if not item["name"].endswith(suffix):
+            # Skip the current iteration
+            continue
 
+        # Return True
+        return True
+
+    # Return False
     return False
