@@ -7,11 +7,14 @@ import aiofiles
 import asyncio
 import json
 import os
+import py7zr
 import shutil
+import subprocess
 import sys
+import zipfile
 
 from pathlib import Path
-from typing import Any, Dict, Final, List, Union
+from typing import Any, Dict, Final, Generator, List, Union
 
 from utils.logging import info, exception, warn
 
@@ -26,9 +29,12 @@ __all__: Final[List[str]] = [
     "file_read",
     "file_remove",
     "file_write",
+    "iterate_directories",
+    "iterate_files",
     "list_directory_contents",
     "remove_symlink",
     "symlink_exists",
+    "unpack_archive",
 ]
 
 
@@ -221,28 +227,28 @@ def create_symlink(
         # Convert the target to a Path object
         target = Path(target)
 
-    # Check if the platform is not Windows
-    if sys.platform != "win32":
-        # Fallback to copy if link creation fails
-        os.link(
-            dst=target.as_posix(),
-            src=source.as_posix(),
-        )
-
-        # Log link creation
-        info(
-            message=f"Created link from {source} to {target}",
-            name="files.create_symlink",
-        )
-
-        # Return early if link creation is successful
-        return
-
     try:
+        # Check if the platform is Windows
+        if sys.platform == "win32":
+            # Fallback to copy if link creation fails
+            os.link(
+                dst=target.as_posix(),
+                src=source.as_posix(),
+            )
+
+            # Log link creation
+            info(
+                message=f"Created link from {source} to {target}",
+                name="files.create_symlink",
+            )
+
+            # Return early if link creation is successful
+            return
+
         os.symlink(
             dst=target.as_posix(),
             src=source.as_posix(),
-            target_is_directory=True,
+            target_is_directory=source.is_dir(),
         )
 
         # Log symlink creation
@@ -583,6 +589,94 @@ def file_write_json(
     )
 
 
+def iterate_directories(directory: Union[Path, str]) -> Generator[Path, None, None]:
+    """
+    Iterates over all directories in the specified directory.
+
+    :param directory: The directory to iterate over.
+    :type directory: Union[Path, str]
+
+    :return: A generator of directory paths.
+    :rtype: Generator[Path, None, None]
+    """
+
+    # Check if the directory is a Path object
+    if not isinstance(
+        directory,
+        Path,
+    ):
+        # Convert the directory to a Path object
+        directory = Path(directory)
+
+    # Check if the directory exists
+    if not directory.exists():
+        # Log a warning message
+        warn(
+            message=f"Directory '{directory}' does not exist",
+            name="files.iterate_directories",
+        )
+
+        # Return an empty generator
+        yield from []
+
+    # Iterate over all directories in the directory
+    for path in directory.rglob("*"):
+        # Check if the path is a directory
+        if not path.is_dir():
+            # Skip files
+            continue
+
+        # Yield the directory path
+        yield path
+
+    # Return an empty generator
+    yield from []
+
+
+def iterate_files(directory: Union[Path, str]) -> Generator[Path, None, None]:
+    """
+    Iterates over all files in the specified directory.
+
+    :param directory: The directory to iterate over.
+    :type directory: Union[Path, str]
+
+    :return: A generator of file paths.
+    :rtype: Generator[Path, None, None]
+    """
+
+    # Check if the directory is a Path object
+    if not isinstance(
+        directory,
+        Path,
+    ):
+        # Convert the directory to a Path object
+        directory = Path(directory)
+
+    # Check if the directory exists
+    if not directory.exists():
+        # Log a warning message
+        warn(
+            message=f"Directory '{directory}' does not exist",
+            name="files.iterate_files",
+        )
+
+        # Return an empty generator
+        yield from []
+
+    # Iterate over all files in the directory
+    for path in directory.rglob("*"):
+        # Check if the path is a file
+        if not path.is_file():
+            # Skip directories
+            continue
+
+        # Yield the file path
+        yield path
+
+    # Return an empty generator
+    yield from []
+
+
 def list_directory_contents(path: Union[Path, str]) -> List[Dict[str, Any]]:
     """
     Lists the contents of a directory at the specified path.
@@ -657,3 +751,56 @@ def symlink_exists(path: Union[Path, str]) -> bool:
 
     # Check if the symlink exists
     return path.exists(follow_symlinks=False)
+
+
+def unpack_archive(
+    source: Union[Path, str],
+    destination: Union[Path, str],
+) -> Path:
+    """
+    Unpacks an archive at the specified source path to the specified destination path.
+
+    :param source: The path to the archive to unpack.
+    :type source: Union[Path, str]
+    :param destination: The path to the destination directory to unpack the archive to.
+    :type destination: Union[Path, str]
+
+    :return: The path to the unpacked archive.
+    :rtype: Path
+    """
+
+    # Check if the source is a Path object
+    if not isinstance(
+        source,
+        Path,
+    ):
+        # Convert the source to a Path object
+        source = Path(source)
+
+    # Check if the destination is a Path object
+    if not isinstance(
+        destination,
+        Path,
+    ):
+        # Convert the destination to a Path object
+        destination = Path(destination)
+
+    if source.suffix == ".zip":
+        # Unpack the archive
+        with zipfile.ZipFile(file=source.as_posix()) as zip_file:
+            zip_file.extractall(path=destination.as_posix())
+    elif source.suffix == ".7z":
+        # Unpack the archive
+        subprocess.run(
+            args=[
+                "7z",
+                "x",
+                source.as_posix(),
+                "-o" + destination.as_posix(),
+            ],
+            check=True,
+            shell=True,
+        )
+
+    # Return the destination path
+    return destination

@@ -6,23 +6,25 @@ Date: 2025-08-14
 import tkinter
 
 from pathlib import Path
-from tkinter.constants import FLAT, NSEW
+from tkinter.constants import END, FLAT, NSEW, SINGLE
 from typing import Any, Dict, Final, List, Optional, Union
 
-from gui.main_window import center_frame, clear_center_frame
+from gui.main_window import center_frame, clear_center_frame, main_window
 from gui.view.select_view import select_directory, select_file
 from gui.widgets import get_scrolled_frame
 
 from utils.constants import DEFAULT_FONT, DEFAULT_FONT_SIZE, DOWNLOAD_PATH
 from utils.dispatcher import dispatch, register, unregister
-from utils.logging import exception, info
+from utils.logging import debug, exception, info
+from utils.mod_installer import install_mod, uninstall_mod, update_mod
 
 
 __all__: Final[List[str]] = ["get_mod_list_view"]
 
 
-CURRENT_GAME: Optional[str] = None
+CURRENT_GAME: Optional[Dict[str, Any]] = None
 REGISTRATION_IDS: Final[List[str]] = []
+SCROLLED_FRAME: Optional[tkinter.Frame] = None
 
 
 def _on_activate_click(
@@ -65,6 +67,65 @@ def _on_activate_click(
         message=f"Activated mod list view item: '{name}'",
         name="mod_list_view._on_activate_click",
     )
+
+
+def _on_add_game_button_click() -> None:
+    """
+    Adds a game to the database.
+
+    :return: None
+    :rtype: None
+    """
+
+    # Declare the global variable
+    global CURRENT_GAME
+
+    # Attempt to dispatch the SELECT_GAME event
+    try:
+        # Select the game directory
+        path: Optional[Path] = select_directory(
+            title="Select Game Directory",
+        )
+
+        # Check if the path exists
+        if not path:
+            # Log an info message
+            info(
+                message="Game directory not selected",
+                name="mod_list_view._on_game_select_button_click",
+            )
+
+            # Return early
+            return
+
+        # Log an info message
+        info(
+            message=f"Selected game: '{path.name}'",
+            name="mod_list_view._on_game_select_button_click",
+        )
+
+        # Dispatch the SELECT_GAME event
+        CURRENT_GAME = dispatch(
+            event="REQUEST_INSERT_GAME",
+            name=path.name,
+            namespace="global",
+            path=path,
+        ).get("_on_request_insert_game", {})
+
+        info(
+            message=f"Changed selected game to: '{CURRENT_GAME}'",
+            name="mod_list_view._on_game_select_button_click",
+        )
+    except Exception as e:
+        # Log an exception
+        exception(
+            exception=e,
+            message="Failed to select game",
+            name="mod_list_view._on_game_select_button_click",
+        )
+
+        # Return early
+        return
 
 
 def _on_deactivate_click(
@@ -160,20 +221,62 @@ def _on_game_select_button_click() -> None:
     """
 
     # Declare the global variable
-    global CURRENT_GAME
+    global CURRENT_GAME, SCROLLED_FRAME
 
-    # Attempt to dispatch the SELECT_GAME event
-    try:
-        # Select the game directory
-        path: Optional[Path] = select_directory(
-            title="Select Game Directory",
+    # Attempt to dispatch the REQUEST_GET_ALL_GAMES event
+    games: List[Dict[str, Any]] = dispatch(
+        event="REQUEST_GET_ALL_GAMES",
+        namespace="global",
+    ).get("_on_request_get_all_games", [])
+
+    # Check if the games list is empty
+    if not games:
+        # Log an info message
+        info(
+            message="No games found",
+            name="mod_list_view._on_game_select_button_click",
         )
 
-        # Check if the path exists
-        if not path:
+        # Return early
+        return
+
+    def _on_listbox_select(event: Optional[tkinter.Event] = None) -> None:
+        """
+        Selects the game.
+
+        :param event: The event that triggered the function. Defaults to None.
+        :type event: Optional[tkinter.Event]
+
+        :return: None
+        :rtype: None
+        """
+
+        # Declare the global variable
+        global CURRENT_GAME
+
+        # Check if the event is None
+        if not event:
+            # Return early
+            return
+
+        listbox: tkinter.Listbox = event.widget
+
+        # Get the selected game
+        selected_game: str = listbox.get(
+            first=listbox.curselection()[0],
+        )
+
+        # Set the current game
+        game: Dict[str, Any] = next(
+            (game for game in games if game.get("name") == selected_game),
+            None,
+        )
+
+        # Check if the game is None
+        if not game:
             # Log an info message
             info(
-                message="Game directory not selected",
+                message="Game not found",
                 name="mod_list_view._on_game_select_button_click",
             )
 
@@ -181,7 +284,7 @@ def _on_game_select_button_click() -> None:
             return
 
         # Set the current game
-        CURRENT_GAME = path.name
+        CURRENT_GAME = game
 
         # Log an info message
         info(
@@ -189,28 +292,77 @@ def _on_game_select_button_click() -> None:
             name="mod_list_view._on_game_select_button_click",
         )
 
-        # Dispatch the SELECT_GAME event
-        dispatch(
-            event="SELECTED_GAME_DIRECTORY",
-            name=path.name,
-            namespace="core",
-            path=path,
-        )
-    except Exception as e:
-        # Log an exception
-        exception(
-            exception=e,
-            message="Failed to select game",
-            name="mod_list_view._on_game_select_button_click",
+        # Attempt to dispatch the REQUEST_GET_MODS_FOR_GAME event
+        mods_for_game: List[Dict[str, Any]] = dispatch(
+            event="REQUEST_GET_MODS_FOR_GAME",
+            game_id=CURRENT_GAME.get("id"),
+            namespace="global",
+        ).get("_on_request_get_mods_for_game", [])
+
+        # Clear the scrolled frame
+        clear_scrolled_frame()
+
+        # Iterate over the mods for the game
+        for mod_for_game in mods_for_game:
+            # Get the mod list view item
+            get_mod_list_view_item(
+                master=SCROLLED_FRAME,
+                name=mod_for_game.get("name"),
+            )
+
+        # Destroy the toplevel
+        toplevel.destroy()
+
+    # Create the toplevel
+    toplevel: tkinter.Toplevel = tkinter.Toplevel(master=main_window())
+
+    # Set the toplevel's title
+    toplevel.title("Select Game")
+
+    # Set the toplevel's geometry
+    toplevel.geometry("400x400")
+
+    # Configure the toplevel's 0th column to weight 1
+    toplevel.grid_columnconfigure(
+        index=0,
+        weight=1,
+    )
+
+    # Configure the toplevel's 0th row to weight 1
+    toplevel.grid_rowconfigure(
+        index=0,
+        weight=1,
+    )
+
+    # Create the listbox
+    listbox: tkinter.Listbox = tkinter.Listbox(
+        font=(
+            DEFAULT_FONT,
+            DEFAULT_FONT_SIZE,
+        ),
+        master=toplevel,
+        selectmode=SINGLE,
+    )
+
+    # Grid the listbox
+    listbox.grid(
+        column=0,
+        row=0,
+        sticky=NSEW,
+    )
+
+    # Insert the game names into the listbox
+    for game in games:
+        # Insert the game name into the listbox
+        listbox.insert(
+            END,
+            game.get("name"),
         )
 
-        # Return early
-        return
-
-    # Log an info message
-    info(
-        message="Selected game",
-        name="mod_list_view._on_game_select_button_click",
+    # Bind the listbox select event
+    listbox.bind(
+        func=_on_listbox_select,
+        sequence="<<ListboxSelect>>",
     )
 
 
@@ -230,14 +382,53 @@ def _on_install_click(
     :rtype: None
     """
 
+    # Declare the global variable
+    global CURRENT_GAME
+
     # Attempt to dispatch the INSTALL_MOD event
     try:
         # Dispatch the INSTALL_MOD event
-        dispatch(
-            event="INSTALL_MOD",
+        mods: List[Dict[str, Any]] = dispatch(
+            event="REQUEST_SEARCH_MODS",
+            game_code=CURRENT_GAME.get("code"),
             name=name,
-            namespace="core",
+            namespace="global",
+        ).get("_on_request_search_mods", [])
+
+        # Check if the mods list is empty
+        if not mods:
+            # Log an info message
+            info(
+                message="No mods found",
+                name="mod_list_view._on_install_click",
+            )
+
+            # Return early
+            return
+
+        mod: Optional[Dict[str, Any]] = next(
+            (mod for mod in mods if mod.get("name") == name),
+            None,
         )
+
+        # Check if the mod is None
+        if not mod:
+            # Log an info message
+            info(
+                message="Mod not found",
+                name="mod_list_view._on_install_click",
+            )
+
+            # Return early
+            return
+
+        mod["symlink_target"] = select_directory(
+            initialdir=Path(CURRENT_GAME.get("path", "")),
+            title="Select Symlink Target",
+        )
+
+        # Install the mod
+        install_mod(mod=mod)
     except Exception as e:
         # Log an exception
         exception(
@@ -264,11 +455,25 @@ def _on_mod_select_button_click() -> None:
     :rtype: None
     """
 
+    # Declare the global variable
+    global CURRENT_GAME, SCROLLED_FRAME
+
+    # Check if the game is None
+    if not CURRENT_GAME:
+        # Log an info message
+        info(
+            message="No game selected",
+            name="mod_list_view._on_mod_select_button_click",
+        )
+
+        # Return early
+        return
+
     # Attempt to dispatch the SELECT_GAME event
     try:
         # Select the game directory
         path: Optional[Path] = select_file(
-            file_types=["7zip", "rar", "zip"],
+            file_types=["7z", "rar", "zip"],
             initialdir=DOWNLOAD_PATH,
             title="Select Mod Directory",
         )
@@ -285,11 +490,30 @@ def _on_mod_select_button_click() -> None:
             return
 
         # Dispatch the SELECT_GAME event
-        dispatch(
-            event="SELECTED_MOD_DIRECTORY",
+        mod: Optional[Dict[str, Any]] = dispatch(
+            event="REQUEST_INSERT_MOD",
+            game_code=CURRENT_GAME.get("code"),
+            game_id=CURRENT_GAME.get("id"),
             name=path.name,
-            namespace="core",
+            namespace="global",
             path=path,
+        ).get("_on_request_insert_mod", None)
+
+        # Check if the mod is None
+        if not mod:
+            # Log an info message
+            info(
+                message="Mod not inserted",
+                name="mod_list_view._on_mod_select_button_click",
+            )
+
+            # Return early
+            return
+
+        # Get the mod list view item
+        get_mod_list_view_item(
+            master=SCROLLED_FRAME,
+            name=mod.get("name"),
         )
     except Exception as e:
         # Log an exception
@@ -301,12 +525,6 @@ def _on_mod_select_button_click() -> None:
 
         # Return early
         return
-
-    # Log an info message
-    info(
-        message="Selected mod directory",
-        name="mod_list_view._on_mod_select_button_click",
-    )
 
 
 def _on_uninstall_click(
@@ -328,11 +546,42 @@ def _on_uninstall_click(
     # Attempt to dispatch the UNINSTALL_MOD event
     try:
         # Dispatch the UNINSTALL_MOD event
-        dispatch(
-            event="UNINSTALL_MOD",
+        mods: List[Dict[str, Any]] = dispatch(
+            event="REQUEST_SEARCH_MODS",
+            game_code=CURRENT_GAME.get("code"),
             name=name,
-            namespace="core",
+            namespace="global",
+        ).get("_on_request_search_mods", [])
+
+        # Check if the mods list is empty
+        if not mods:
+            # Log an info message
+            info(
+                message="No mods found",
+                name="mod_list_view._on_uninstall_click",
+            )
+
+            # Return early
+            return
+
+        mod: Optional[Dict[str, Any]] = next(
+            (mod for mod in mods if mod.get("name") == name),
+            None,
         )
+
+        # Check if the mod is None
+        if not mod:
+            # Log an info message
+            info(
+                message="Mod not found",
+                name="mod_list_view._on_uninstall_click",
+            )
+
+            # Return early
+            return
+
+        # Uninstall the mod
+        uninstall_mod(mod=mod)
     except Exception as e:
         # Log an exception
         exception(
@@ -369,12 +618,43 @@ def _on_update_click(
 
     # Attempt to dispatch the UPDATE_MOD event
     try:
-        # Dispatch the UPDATE_MOD event
-        dispatch(
-            event="UPDATE_MOD",
+        # Dispatch the REQUEST_SEARCH_MODS event
+        mods: List[Dict[str, Any]] = dispatch(
+            event="REQUEST_SEARCH_MODS",
+            game_code=CURRENT_GAME.get("code"),
             name=name,
-            namespace="core",
+            namespace="global",
+        ).get("_on_request_search_mods", [])
+
+        # Check if the mods list is empty
+        if not mods:
+            # Log an info message
+            info(
+                message="No mods found",
+                name="mod_list_view._on_update_click",
+            )
+
+            # Return early
+            return
+
+        mod: Optional[Dict[str, Any]] = next(
+            (mod for mod in mods if mod.get("name") == name),
+            None,
         )
+
+        # Check if the mod is None
+        if not mod:
+            # Log an info message
+            info(
+                message="Mod not found",
+                name="mod_list_view._on_update_click",
+            )
+
+            # Return early
+            return
+
+        # Update the mod
+        update_mod(mod=mod)
     except Exception as e:
         # Log an exception
         exception(
@@ -393,6 +673,20 @@ def _on_update_click(
     )
 
 
+def clear_scrolled_frame() -> None:
+    """
+    Clears the scrolled frame.
+
+    :return: None
+    :rtype: None
+    """
+
+    # Iterate over the widgets in the scrolled frame
+    for widget in scrolled_frame().winfo_children():
+        # Destroy the widget
+        widget.destroy()
+
+
 def get_mod_list_view() -> None:
     """
     Returns the mod list view.
@@ -400,6 +694,9 @@ def get_mod_list_view() -> None:
     :return: None
     :rtype: None
     """
+
+    # Declare the global variable
+    global SCROLLED_FRAME
 
     # Declare the master frame
     master: Optional[tkinter.Frame] = center_frame()
@@ -465,6 +762,11 @@ def get_mod_list_view() -> None:
         weight=0,
     )
 
+    top_frame.grid_columnconfigure(
+        index=3,
+        weight=0,
+    )
+
     top_frame.grid_rowconfigure(
         index=0,
         weight=1,
@@ -494,6 +796,24 @@ def get_mod_list_view() -> None:
         row=0,
     )
 
+    add_game_button: tkinter.Button = tkinter.Button(
+        command=_on_add_game_button_click,
+        font=(
+            DEFAULT_FONT,
+            DEFAULT_FONT_SIZE,
+        ),
+        master=top_frame,
+        relief=FLAT,
+        text="Add New Game",
+    )
+
+    add_game_button.grid(
+        column=2,
+        padx=5,
+        pady=5,
+        row=0,
+    )
+
     mod_select_button: tkinter.Button = tkinter.Button(
         command=_on_mod_select_button_click,
         font=(
@@ -506,7 +826,7 @@ def get_mod_list_view() -> None:
     )
 
     mod_select_button.grid(
-        column=2,
+        column=3,
         padx=5,
         pady=5,
         row=0,
@@ -534,11 +854,11 @@ def get_mod_list_view() -> None:
     )
 
     # Create the scrolled frame
-    scrolled_frame: tkinter.Frame = get_scrolled_frame(
+    SCROLLED_FRAME = get_scrolled_frame(
         master=bottom_frame,
     )
 
-    scrolled_frame.grid(
+    SCROLLED_FRAME.grid(
         column=0,
         row=0,
         sticky=NSEW,
@@ -569,6 +889,18 @@ def get_mod_list_view_item(
     :return: The mod list view item.
     :rtype: tkinter.Frame
     """
+
+    # Configure the grid for the master frame
+    master.grid_columnconfigure(
+        index=len(master.winfo_children()),
+        weight=1,
+    )
+
+    # Configure the grid for the master frame
+    master.grid_rowconfigure(
+        index=len(master.winfo_children()),
+        weight=0,
+    )
 
     # Create the frame
     frame: tkinter.Frame = tkinter.Frame(
@@ -778,6 +1110,24 @@ def subscribe_to_events() -> None:
 
         # Add the registration ID to the registration IDs
         REGISTRATION_IDS.append(registration_id)
+
+
+def scrolled_frame() -> tkinter.Frame:
+    """
+    Returns the scrolled frame.
+
+    :return: The scrolled frame.
+    :rtype: tkinter.Frame
+    """
+
+    # Declare the global variable
+    global SCROLLED_FRAME
+
+    # Assert that the scrolled frame exists
+    assert SCROLLED_FRAME is not None
+
+    # Return the scrolled frame
+    return SCROLLED_FRAME
 
 
 def unsubscribe_from_events() -> None:

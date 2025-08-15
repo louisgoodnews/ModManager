@@ -45,7 +45,6 @@ GAMES_TABLE: Final[Dict[str, Any]] = {
     "nexus_id": get_sqlite_column(
         name="nexus_id",
         type="TEXT",
-        unique=True,
     ),
     "path": get_sqlite_column(
         name="path",
@@ -65,12 +64,33 @@ MODS_TABLE: Final[Dict[str, Any]] = {
         type="INTEGER",
         unique=True,
     ),
-    "game": get_sqlite_column(
-        name="game",
+    "code": get_sqlite_column(
+        name="code",
+        type="TEXT",
+        unique=True,
+    ),
+    "game_code": get_sqlite_column(
+        name="game_code",
+        type="TEXT",
+    ),
+    "game_id": get_sqlite_column(
+        name="game_id",
         foreign_key="games(id)",
         on_delete="CASCADE",
         on_update="CASCADE",
         type="INTEGER",
+    ),
+    "installed": get_sqlite_column(
+        name="installed",
+        type="BOOLEAN",
+    ),
+    "mod_archive_location": get_sqlite_column(
+        name="mod_archive_location",
+        type="TEXT",
+    ),
+    "mod_install_location": get_sqlite_column(
+        name="mod_install_location",
+        type="TEXT",
     ),
     "name": get_sqlite_column(
         name="name",
@@ -80,21 +100,22 @@ MODS_TABLE: Final[Dict[str, Any]] = {
     "nexus_id": get_sqlite_column(
         name="nexus_id",
         type="TEXT",
-        unique=True,
     ),
     "path": get_sqlite_column(
         name="path",
         type="TEXT",
-        unique=True,
     ),
     "registered_at": get_sqlite_column(
         name="registered_at",
         type="TIMESTAMP",
     ),
-    "uuid": get_sqlite_column(
-        name="uuid",
+    "symlink_target": get_sqlite_column(
+        name="symlink_target",
         type="TEXT",
-        unique=True,
+    ),
+    "symlinks": get_sqlite_column(
+        name="symlinks",
+        type="JSON",
     ),
     "version": get_sqlite_column(
         name="version",

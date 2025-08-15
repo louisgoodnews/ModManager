@@ -78,11 +78,22 @@ def get_all_games() -> List[Dict[str, Any]]:
         query: str = "SELECT * FROM games"
 
         # Fetch all games
-        result: List[Dict[str, Any]] = asyncio.run(
+        result: Optional[List[Dict[str, Any]]] = asyncio.run(
             fetch_all(
                 query=query,
             )
         )
+
+        # Check if the result is empty
+        if not result:
+            # Log a warning message
+            warn(
+                message="No games found",
+                name="games.get_all_games",
+            )
+
+            # Return an empty list indicating that no games were found
+            return []
 
         # Return the result as a list of dictionaries
         return [dict(row) for row in result]
@@ -285,8 +296,14 @@ def insert_game(
         # Insert the game
         return asyncio.run(
             insert(
-                query=create_insert_sql_string(table=GAMES_TABLE),
+                query=create_insert_sql_string(
+                    table=get_sqlite_table(
+                        columns=GAMES_TABLE.values(),
+                        name="games",
+                    )
+                ),
                 params=[
+                    len(get_all_games()) + 1,
                     code,
                     timestamp,
                     Path(
@@ -358,15 +375,69 @@ def search_games(
     """
     try:
         # Prepare the query
-        query: str = "SELECT * FROM games WHERE id = ?"
+        query: str = "SELECT * FROM games WHERE "
 
-        # Fetch the games by ID
+        # Prepare the parameters
+        params: List[Any] = []
+
+        # Add the conditions
+        if id:
+            query += "id = ? AND "
+            params.append(id)
+
+        if code:
+            query += "code = ? AND "
+            params.append(code)
+
+        if last_loaded_at:
+            query += "last_loaded_at = ? AND "
+            params.append(last_loaded_at)
+
+        if mod_archive_location:
+            query += "mod_archive_location = ? AND "
+            params.append(mod_archive_location)
+
+        if mod_install_location:
+            query += "mod_install_location = ? AND "
+            params.append(mod_install_location)
+
+        if name:
+            query += "name = ? AND "
+            params.append(name)
+
+        if nexus_id:
+            query += "nexus_id = ? AND "
+            params.append(nexus_id)
+
+        if path:
+            query += "path = ? AND "
+            params.append(path)
+
+        if registered_at:
+            query += "registered_at = ? AND "
+            params.append(registered_at)
+
+        # Remove the last "AND"
+        query = query[:-5]
+
+        # Fetch the games
         result: List[Dict[str, Any]] = asyncio.run(
             fetch_all(
-                params=[id],
+                params=params,
                 query=query,
             )
         )
+
+        # Check if the result is empty
+        if not result:
+            # Log a warning message
+            warn(
+                message="No games found",
+                name="games.search_games",
+            )
+
+            # Return an empty list indicating that no games were found
+            return []
 
         # Return the result as a list of dictionaries
         return [dict(row) for row in result]
@@ -374,8 +445,8 @@ def search_games(
         # Log the exception
         exception(
             exception=e,
-            message=f"Failed to fetch games with ID {id}",
-            name="games.get_game_by_id",
+            message=f"Failed to fetch games with parameters {params}",
+            name="games.search_games",
         )
 
         # Return an empty list indicating that an exception occurred

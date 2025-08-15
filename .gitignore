@@ -163,3 +163,6 @@ api.json
 # IDE specifics
 .vscode/*
 .idea/*
+
+# data Folder
+data/*

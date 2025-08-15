@@ -64,7 +64,7 @@ def dispatch(
     for subscription in SUBSCRIPTIONS[event][namespace]:
         try:
             # Call the function
-            result[subscription["registration_id"]] = subscription["function"](
+            result[subscription["function"].__name__] = subscription["function"](
                 event=event,
                 *args,
                 **kwargs,

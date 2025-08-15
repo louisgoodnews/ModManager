@@ -3,7 +3,6 @@ Author: Loius Goodnews
 Date: 2025-08-10
 """
 
-import os
 import aiosqlite
 
 from typing import Any, Dict, Final, List, Literal, Optional
@@ -125,6 +124,14 @@ def column_to_sql_string(column: Dict[str, Any]) -> str:
         ):
             parts.append(f"ON UPDATE {on_update}")
 
+    nullable: bool = column.get(
+        "nullable",
+        True,
+    )
+
+    if not nullable:
+        parts.append("NOT NULL")
+
     return " ".join(parts)
 
 
@@ -154,7 +161,7 @@ def create_insert_sql_string(table: Dict[str, Any]) -> str:
         "INSERT INTO users (id, username, email) VALUES (?, ?, ?);"
     """
 
-    return f"INSERT INTO {table['name']} ({", ".join(key for key in table.get("columns", {}).keys())}) VALUES ({", ".join(["?"] * len(table.get("columns", {})))})"
+    return f"INSERT INTO {table['name']} ({", ".join(column['name'] for column in table.get("columns", {}))}) VALUES ({", ".join(["?"] * len(table.get("columns", {})))})"
 
 
 def create_table_sql_string(table: Dict[str, Any]) -> str:
@@ -215,8 +222,8 @@ async def delete(
         async with aiosqlite.connect(database=DATABASE_PATH) as db:
             # Create a cursor and execute the given query
             cursor: aiosqlite.Cursor = await db.execute(
-                query=query,
-                params=params or [],
+                parameters=params or [],
+                sql=query,
             )
 
             # Commit the current transaction.
@@ -319,8 +326,8 @@ async def fetch_all(
 
             # Helper to create a cursor and execute the given query.
             async with db.execute(
-                params=params or [],
-                query=query,
+                parameters=params or [],
+                sql=query,
             ) as cursor:
                 # Fetch all rows
                 rows: Optional[List[aiosqlite.Row]] = await cursor.fetchall()
@@ -381,8 +388,8 @@ async def fetch_one(
 
             # Helper to create a cursor and execute the given query.
             async with db.execute(
-                params=params or [],
-                query=query,
+                parameters=params or [],
+                sql=query,
             ) as cursor:
                 # Fetch a single row
                 row: Optional[aiosqlite.Row] = await cursor.fetchone()
@@ -425,6 +432,7 @@ def get_sqlite_column(
     ],
     default: Optional[Any] = None,
     foreign_key: Optional[str] = None,
+    nullable: bool = True,
     on_delete: Literal["CASCADE", "NO_ACTION", "RESTRICT", "SET_NULL"] = "NO_ACTION",
     on_update: Literal["CASCADE", "NO_ACTION", "RESTRICT", "SET_NULL"] = "NO_ACTION",
     primary_key: bool = False,
@@ -441,6 +449,7 @@ def get_sqlite_column(
         default (Optional[Any], optional): The default value for the column. Defaults to None.
         foreign_key (Optional[str], optional): A foreign key reference in the format "table(column)".
             Defaults to None, meaning no foreign key constraint.
+        nullable (bool, optional): Whether this column can be NULL. Defaults to True.
         on_delete (Literal, optional): Action to perform on delete for foreign key constraint.
             One of "CASCADE", "NO_ACTION", "RESTRICT", or "SET_NULL".
             Defaults to "NO_ACTION".
@@ -466,6 +475,7 @@ def get_sqlite_column(
         "type": type,
         "default": default,
         "foreign_key": foreign_key,
+        "nullable": nullable,
         "on_delete": on_delete,
         "on_update": on_update,
         "primary_key": primary_key,
@@ -537,8 +547,8 @@ async def insert(
         async with aiosqlite.connect(database=DATABASE_PATH) as db:
             # Execute the INSERT query with the provided parameters
             cursor: aiosqlite.Cursor = await db.execute(
-                query=query,
-                params=params or [],
+                parameters=params or [],
+                sql=query,
             )
 
             # Commit the transaction to persist changes
@@ -590,8 +600,8 @@ async def update(
         async with aiosqlite.connect(database=DATABASE_PATH) as db:
             # Create a cursor and execute the given query.
             cursor: aiosqlite.Cursor = await db.execute(
-                query=query,
-                params=params or [],
+                parameters=params or [],
+                sql=query,
             )
 
             # Commit the current transaction
