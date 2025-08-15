@@ -159,7 +159,7 @@ def unregister(registration_id: str) -> bool:
         # Iterate over the namespaces
         for namespace in subscription.values():
             # Iterate over the functions
-            for function in namespace.values():
+            for function in namespace:
                 # Check if the registration ID matches
                 if function["registration_id"] != registration_id:
                     # Skip the subscription

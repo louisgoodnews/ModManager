@@ -158,3 +158,8 @@ Thumbs.db
 
 # API key
 api.json
+
+
+# IDE specifics
+.vscode/*
+.idea/*

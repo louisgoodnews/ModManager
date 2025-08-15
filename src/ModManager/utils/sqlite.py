@@ -8,23 +8,22 @@ import aiosqlite
 
 from typing import Any, Dict, Final, List, Literal, Optional
 
+from utils.constants import DATABASE_PATH
 from utils.logging import exception
 
 __all__: Final[List[str]] = [
     "column_to_sql_string",
+    "create_insert_sql_string",
     "create_table_sql_string",
+    "delete",
+    "execute_query",
     "fetch_all",
     "fetch_one",
     "get_sqlite_column",
     "get_sqlite_table",
+    "insert",
+    "update",
 ]
-
-
-DB_PATH: Final[str] = os.path.join(
-    os.getcwd(),
-    "data",
-    "db.db",
-)
 
 
 def column_to_sql_string(column: Dict[str, Any]) -> str:
@@ -213,7 +212,7 @@ async def delete(
 
     try:
         # Create and return a connection proxy to the sqlite database.
-        async with aiosqlite.connect(database=DB_PATH) as db:
+        async with aiosqlite.connect(database=DATABASE_PATH) as db:
             # Create a cursor and execute the given query
             cursor: aiosqlite.Cursor = await db.execute(
                 query=query,
@@ -265,11 +264,11 @@ async def execute_query(
 
     try:
         # Create and return a connection proxy to the sqlite database.
-        async with aiosqlite.connect(database=DB_PATH) as db:
+        async with aiosqlite.connect(database=DATABASE_PATH) as db:
             # Helper to create a cursor and execute the given query.
             await db.execute(
-                params=params or [],
-                query=query,
+                parameters=params or [],
+                sql=query,
             )
 
             # Commit the current transaction
@@ -314,7 +313,7 @@ async def fetch_all(
 
     try:
         # Create and return a connection proxy to the sqlite database.
-        async with aiosqlite.connect(database=DB_PATH) as db:
+        async with aiosqlite.connect(database=DATABASE_PATH) as db:
             # Making sure that the result is returned as a dict-like object
             db.row_factory = aiosqlite.Row
 
@@ -376,7 +375,7 @@ async def fetch_one(
 
     try:
         # Create and return a connection proxy to the sqlite database.
-        async with aiosqlite.connect(database=DB_PATH) as db:
+        async with aiosqlite.connect(database=DATABASE_PATH) as db:
             # Making sure that the result is returned as a dict-like object
             db.row_factory = aiosqlite.Row
 
@@ -421,6 +420,7 @@ def get_sqlite_column(
         "NUMERIC",
         "REAL",
         "TEXT",
+        "TIMESTAMP",
         "VARCHAR",
     ],
     default: Optional[Any] = None,
@@ -437,7 +437,7 @@ def get_sqlite_column(
         name (str): The name of the column.
         type (Literal): The data type of the column. Must be one of:
             "BLOB", "BOOLEAN", "DATE", "DATETIME", "FLOAT", "INTEGER",
-            "JSON", "NULL", "NUMERIC", "REAL", "TEXT", or "VARCHAR".
+            "JSON", "NULL", "NUMERIC", "REAL", "TEXT", "TIMESTAMP", or "VARCHAR".
         default (Optional[Any], optional): The default value for the column. Defaults to None.
         foreign_key (Optional[str], optional): A foreign key reference in the format "table(column)".
             Defaults to None, meaning no foreign key constraint.
@@ -461,7 +461,16 @@ def get_sqlite_column(
         - This function does not generate SQL statements, it only returns the column metadata.
     """
 
-    return locals()
+    return {
+        "name": name,
+        "type": type,
+        "default": default,
+        "foreign_key": foreign_key,
+        "on_delete": on_delete,
+        "on_update": on_update,
+        "primary_key": primary_key,
+        "unique": unique,
+    }
 
 
 def get_sqlite_table(
@@ -489,7 +498,10 @@ def get_sqlite_table(
         - The resulting dictionary can be used for schema generation, validation, or further processing.
     """
 
-    return locals()
+    return {
+        "name": name,
+        "columns": columns,
+    }
 
 
 async def insert(
@@ -522,7 +534,7 @@ async def insert(
 
     try:
         # Open an asynchronous connection to the SQLite database
-        async with aiosqlite.connect(database=DB_PATH) as db:
+        async with aiosqlite.connect(database=DATABASE_PATH) as db:
             # Execute the INSERT query with the provided parameters
             cursor: aiosqlite.Cursor = await db.execute(
                 query=query,
@@ -575,7 +587,7 @@ async def update(
 
     try:
         # Create and return a connection proxy to the sqlite database.
-        async with aiosqlite.connect(database=DB_PATH) as db:
+        async with aiosqlite.connect(database=DATABASE_PATH) as db:
             # Create a cursor and execute the given query.
             cursor: aiosqlite.Cursor = await db.execute(
                 query=query,

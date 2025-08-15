@@ -8,7 +8,13 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Final, List, Union
 
-from utils.files import create_directory, file_read_json, file_write_json
+from utils.constants import API_JSON_PATH
+from utils.files import (
+    create_directory,
+    file_read_json,
+    file_write_json,
+    search_for_path,
+)
 from utils.logging import exception, info
 
 
@@ -21,13 +27,6 @@ __all__: Final[List[str]] = [
 
 
 API_JSON: Final[Dict[str, Any]] = {}
-
-API_JSON_PATH: Final[Path] = Path(
-    os.path.join(
-        os.getcwd(),
-        "api.json",
-    )
-)
 
 
 def create_mod_staging_folder_for_game(
@@ -83,6 +82,42 @@ def create_mod_staging_folder_for_game(
 
         # Return False
         return False
+
+
+def find_installed_games() -> List[Dict[str, Any]]:
+    """
+    Finds installed games.
+
+    :return: A list of installed games.
+    :rtype: List[Dict[str, Any]]
+    """
+
+    # Initialize the result
+    result: List[Dict[str, Any]] = []
+
+    # Find installed Steam games
+    result.extend(find_installed_steam_games())
+
+    # Return the result
+    return result
+
+
+def find_installed_steam_games() -> List[Dict[str, Any]]:
+    """
+    Finds installed Steam games.
+
+    :return: A list of installed Steam games.
+    :rtype: List[Dict[str, Any]]
+    """
+
+    # Search for the 'steamapps/common' directory
+    paths: List[str] = search_for_path(
+        base_path=Path("/"),
+        name="steamapps/common",
+    )
+
+    # Return the paths
+    return paths
 
 
 def load_api_json() -> None:

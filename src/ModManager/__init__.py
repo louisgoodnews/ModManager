@@ -7,6 +7,8 @@ from typing import Final, List
 
 from core.engines import unreal
 
+from gui import main_window
+
 from utils import dispatcher
 from utils import files
 from utils import logging
@@ -19,6 +21,7 @@ __all__: Final[List[str]] = [
     "files",
     "http",
     "logging",
+    "main_window",
     "nexus_files",
     "nexus_http",
     "sqlite",

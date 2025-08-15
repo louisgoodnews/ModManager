@@ -13,11 +13,13 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Final, List, Union
 
-from utils.logging import info, exception
+from utils.logging import info, exception, warn
 
 __all__: Final[List[str]] = [
     "create_directory",
+    "create_directory_if_not_exists",
     "create_file",
+    "create_file_if_not_exists",
     "create_symlink",
     "directory_exists",
     "file_exists",
@@ -72,6 +74,42 @@ def create_directory(
         )
 
 
+def create_directory_if_not_exists(
+    path: Union[Path, str],
+) -> None:
+    """
+    Creates a directory at the specified path if it does not exist.
+
+    :param path: The path to the directory to create.
+    :type path: Union[Path, str]
+
+    :return: None
+    :rtype: None
+    """
+
+    # Check if the path is a Path object
+    if not isinstance(
+        path,
+        Path,
+    ):
+        # Convert the path to a Path object
+        path = Path(path)
+
+    # Check if the directory exists
+    if directory_exists(path=path):
+        # Log a warning message
+        warn(
+            message=f"Directory at '{path}' already exists",
+            name="files.create_directory_if_not_exists",
+        )
+
+        # Return early
+        return
+
+    # Create the directory
+    create_directory(path=path)
+
+
 def create_file(
     path: Union[Path, str],
 ) -> None:
@@ -112,6 +150,42 @@ def create_file(
             message="Caught an exception while attempting to create file",
             name="files.create_file",
         )
+
+
+def create_file_if_not_exists(
+    path: Union[Path, str],
+) -> None:
+    """
+    Creates a file at the specified path if it does not exist.
+
+    :param path: The path to the file to create.
+    :type path: Union[Path, str]
+
+    :return: None
+    :rtype: None
+    """
+
+    # Check if the path is a Path object
+    if not isinstance(
+        path,
+        Path,
+    ):
+        # Convert the path to a Path object
+        path = Path(path)
+
+    # Check if the file exists
+    if file_exists(path=path):
+        # Log a warning message
+        warn(
+            message=f"File at '{path}' already exists",
+            name="files.create_file_if_not_exists",
+        )
+
+        # Return early
+        return
+
+    # Create the file
+    create_file(path=path)
 
 
 def create_symlink(
