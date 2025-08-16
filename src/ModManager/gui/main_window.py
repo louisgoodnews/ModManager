@@ -426,6 +426,7 @@ def get_bottom_frame() -> tkinter.Frame:
     if not BOTTOM_frame:
         # Create the bottom Frame
         BOTTOM_frame = tkinter.Frame(
+            background="#6750A4",
             height=25,
             master=main_window(),
         )
@@ -477,6 +478,7 @@ def get_center_frame() -> tkinter.Frame:
     if not CENTER_frame:
         # Create the center Frame
         CENTER_frame = tkinter.Frame(
+            background="#6750A4",
             master=main_window(),
         )
 
@@ -521,10 +523,12 @@ def get_edit_menu() -> tkinter.Menu:
     if not EDIT_MENU:
         # Create the edit menu
         EDIT_MENU = tkinter.Menu(
+            background="#6750A4",
             font=(
                 DEFAULT_FONT,
                 DEFAULT_FONT_SIZE,
             ),
+            foreground="white",
             master=menu(),
             name="edit",
         )
@@ -554,10 +558,12 @@ def get_file_menu() -> tkinter.Menu:
     if not FILE_MENU:
         # Create the file menu
         FILE_MENU = tkinter.Menu(
+            background="#6750A4",
             font=(
                 DEFAULT_FONT,
                 DEFAULT_FONT_SIZE,
             ),
+            foreground="white",
             master=menu(),
             name="file",
         )
@@ -669,10 +675,12 @@ def get_menu() -> tkinter.Menu:
     if not MENU:
         # Create the menu
         MENU = tkinter.Menu(
+            background="#6750A4",
             font=(
                 DEFAULT_FONT,
                 DEFAULT_FONT_SIZE,
             ),
+            foreground="white",
             master=main_window(),
         )
 
@@ -725,6 +733,7 @@ def get_top_frame() -> tkinter.Frame:
     if not TOP_frame:
         # Create the top Frame
         TOP_frame = tkinter.Frame(
+            background="#6750A4",
             master=main_window(),
         )
 
@@ -769,10 +778,12 @@ def get_view_menu() -> tkinter.Menu:
     if not VIEW_MENU:
         # Create the view menu
         VIEW_MENU = tkinter.Menu(
+            background="#6750A4",
             font=(
                 DEFAULT_FONT,
                 DEFAULT_FONT_SIZE,
             ),
+            foreground="white",
             master=menu(),
             name="view",
         )

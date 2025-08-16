@@ -718,6 +718,7 @@ def get_mod_list_view() -> None:
 
     # Create the frame
     frame: tkinter.Frame = tkinter.Frame(
+        background="#6750A4",
         master=master,
     )
 
@@ -744,6 +745,7 @@ def get_mod_list_view() -> None:
 
     # Create the top frame
     top_frame: tkinter.Frame = tkinter.Frame(
+        background="#6750A4",
         master=frame,
     )
 
@@ -779,11 +781,13 @@ def get_mod_list_view() -> None:
     )
 
     game_select_button: tkinter.Button = tkinter.Button(
+        background="#6750A4",
         command=_on_game_select_button_click,
         font=(
             DEFAULT_FONT,
             DEFAULT_FONT_SIZE,
         ),
+        foreground="white",
         master=top_frame,
         relief=FLAT,
         text="Select Game",
@@ -797,11 +801,13 @@ def get_mod_list_view() -> None:
     )
 
     add_game_button: tkinter.Button = tkinter.Button(
+        background="#6750A4",
         command=_on_add_game_button_click,
         font=(
             DEFAULT_FONT,
             DEFAULT_FONT_SIZE,
         ),
+        foreground="white",
         master=top_frame,
         relief=FLAT,
         text="Add New Game",
@@ -815,11 +821,13 @@ def get_mod_list_view() -> None:
     )
 
     mod_select_button: tkinter.Button = tkinter.Button(
+        background="#6750A4",
         command=_on_mod_select_button_click,
         font=(
             DEFAULT_FONT,
             DEFAULT_FONT_SIZE,
         ),
+        foreground="white",
         master=top_frame,
         relief=FLAT,
         text="Select Mod",
@@ -834,6 +842,7 @@ def get_mod_list_view() -> None:
 
     # Create the bottom frame
     bottom_frame: tkinter.Frame = tkinter.Frame(
+        background="#6750A4",
         master=frame,
     )
 
@@ -857,6 +866,8 @@ def get_mod_list_view() -> None:
     SCROLLED_FRAME = get_scrolled_frame(
         master=bottom_frame,
     )
+
+    SCROLLED_FRAME.configure(background="#6750A4")
 
     SCROLLED_FRAME.grid(
         column=0,
@@ -904,6 +915,7 @@ def get_mod_list_view_item(
 
     # Create the frame
     frame: tkinter.Frame = tkinter.Frame(
+        background="#6750A4",
         master=master,
     )
 
@@ -934,7 +946,9 @@ def get_mod_list_view_item(
 
     # Create the label
     label: tkinter.Label = tkinter.Label(
+        background="#6750A4",
         font=(DEFAULT_FONT, DEFAULT_FONT_SIZE),
+        foreground="white",
         master=frame,
         text=name,
     )
@@ -950,6 +964,8 @@ def get_mod_list_view_item(
 
     # Create the menu button
     menu_button: tkinter.Menubutton = tkinter.Menubutton(
+        background="#6750A4",
+        foreground="white",
         master=frame,
         text="...",
     )
@@ -964,6 +980,8 @@ def get_mod_list_view_item(
 
     # Create the menu
     menu: tkinter.Menu = tkinter.Menu(
+        background="#6750A4",
+        foreground="white",
         master=menu_button,
     )
 

@@ -31,6 +31,8 @@ def get_scrolled_frame(
     :rtype: tkinter.Frame
     """
 
+    window_id: int = 0
+
     def _on_canvas_configure(event: Optional[tkinter.Event] = None) -> None:
         """
         Configures the canvas.
@@ -60,11 +62,33 @@ def get_scrolled_frame(
         :rtype: None
         """
 
-        # Scroll the canvas
-        canvas.yview_scroll(
-            event.delta,
-            "units",
+        # Configure the canvas
+        canvas.configure(
+            scrollregion=canvas.bbox(ALL),
         )
+
+        # Update the frame to the new height and width
+        canvas.itemconfig(
+            height=event.height,
+            tagOrId=window_id,
+            width=event.width,
+        )
+
+        # Check if horizontal scrolling is enabled
+        if scroll_horizontal:
+            # Scroll the canvas
+            canvas.xview_scroll(
+                number=event.delta,
+                what="units",
+            )
+
+        # Check if vertical scrolling is enabled
+        if scroll_vertical:
+            # Scroll the canvas
+            canvas.yview_scroll(
+                number=event.delta,
+                what="units",
+            )
 
     def _on_frame_configure(event: Optional[tkinter.Event] = None) -> None:
         """
@@ -190,7 +214,7 @@ def get_scrolled_frame(
     )
 
     # Add the frame to the canvas
-    canvas.create_window(
+    window_id = canvas.create_window(
         (0, 0),
         anchor=NW,
         window=frame,

@@ -14,6 +14,7 @@ import sys
 import zipfile
 
 from pathlib import Path
+from pyunpack import Archive
 from typing import Any, Dict, Final, Generator, List, Union
 
 from utils.logging import info, exception, warn
@@ -785,22 +786,11 @@ def unpack_archive(
         # Convert the destination to a Path object
         destination = Path(destination)
 
-    if source.suffix == ".zip":
-        # Unpack the archive
-        with zipfile.ZipFile(file=source.as_posix()) as zip_file:
-            zip_file.extractall(path=destination.as_posix())
-    elif source.suffix == ".7z":
-        # Unpack the archive
-        subprocess.run(
-            args=[
-                "7z",
-                "x",
-                source.as_posix(),
-                "-o" + destination.as_posix(),
-            ],
-            check=True,
-            shell=True,
-        )
+    # Unpack the archive
+    Archive(filename=source.as_posix()).extractall(
+        auto_create_dir=True,
+        directory=destination.as_posix(),
+    )
 
     # Return the destination path
     return destination
