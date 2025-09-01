@@ -1,0 +1,18 @@
+[submodule "external/Logger"]
+	path = external/Logger
+	url = https://github.com/louisgoodnews/Logger
+[submodule "external/BaseObject"]
+	path = external/BaseObject
+	url = https://github.com/louisgoodnews/BaseObject
+[submodule "external/DateUtil"]
+	path = external/DateUtil
+	url = https://github.com/louisgoodnews/DateUtil
+[submodule "external/WebUtils"]
+	path = external/WebUtils
+	url = https://github.com/louisgoodnews/WebUtils
+[submodule "external/Dispatcher"]
+	path = external/Dispatcher
+	url = https://github.com/louisgoodnews/Dispatcher
+[submodule "external/FileManager"]
+	path = external/FileManager
+	url = https://github.com/louisgoodnews/FileManager
