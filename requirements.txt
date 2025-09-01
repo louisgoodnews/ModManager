@@ -1,0 +1,6 @@
+git+https://github.com/louisgoodnews/BaseObject.git
+git+https://github.com/louisgoodnews/DateUtil.git
+git+https://github.com/louisgoodnews/Dispatcher.git
+git+https://github.com/louisgoodnews/FileManager.git
+git+https://github.com/louisgoodnews/Logger.git
+git+https://github.com/louisgoodnews/WebUtils.git
